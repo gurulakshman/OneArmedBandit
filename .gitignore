@@ -1,3 +1,7 @@
+
+# auto generated build info file
+buildinfo.xml
+
 # Linux
 .*
 !.gitignore

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    This file should be included from build.xml by default.
+
+    Creates the file BuildInfo.java which contains various constants
+    determined at build-time.
+-->
+<project name="OneArmedBandit" default="help">
+
+	<!-- Output placement -->
+	<property name="buildinfo-outpath" location="${basedir}/res/values"/>
+    <property name="buildinfo-filename" value="buildinfo.xml"/>
+
+    <!-- Be verbose -->
+    <echo>----------</echo>
+    <echo>Generating ${buildinfo-outpath}/${buildinfo-filename} ...</echo>
+
+    <!-- Timestamp (also sets the DSTAMP, TSTAMP, and TODAY properties) -->
+	<tstamp>
+		<format property="buildtime" pattern="HH:mm"/>
+	</tstamp>
+
+    <!-- Run a 'git describe' to get revision information -->
+	<exec executable="git" outputproperty="gitversion" searchpath="true">
+		<arg value="describe"/>
+		<arg value="--long"/>
+		<arg value="--always"/>
+	</exec>
+
+	<!-- Set write permissions -->
+	<chmod file="${buildinfo-outpath}/${buildinfo-filename}" perm="+w"/>
+	<attrib file="${buildinfo-outpath}/${buildinfo-filename}" readonly="false"/>
+
+    <!-- Write the file, overwriting any old versions -->
+	<echo file="${buildinfo-outpath}/${buildinfo-filename}"
+          append="false"><![CDATA[<?xml version="1.0" encoding="utf-8"?>
+    <!--
+        AUTO-GENERATED, DO NOT MODIFY.
+    -->
+    <resources>
+        <string name="bi_versionname">${gitversion}</string>
+        <string name="bi_builddate">${DSTAMP}</string>
+        <string name="bi_buildtime">${buildtime}</string>
+        <string name="bi_buildplatform_name">${os.name}</string>
+        <string name="bi_buildplatform_arch">${os.arch}</string>
+        <string name="bi_buildplatform_version">${os.version}</string>
+        <string name="bi_buildplatform_antversion">${ant.version}</string>
+        <string name="bi_buildplatform_antjava">${ant.java.version}</string>
+        <string name="bi_targetplatform">${target}</string>
+    </resources>
+    ]]></echo>
+
+    <!-- Set read-only permissions once again -->
+	<chmod file="${buildinfo-outpath}/${buildinfo-filename}" perm="-w"/>
+	<attrib file="${buildinfo-outpath}/${buildinfo-filename}" readonly="true"/>
+
+    <!-- Be verbose -->
+    <echo>Done.</echo>
+    <echo>----------</echo>
+
+</project>
+

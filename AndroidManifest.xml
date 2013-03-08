@@ -6,7 +6,9 @@
 
     <uses-sdk android:minSdkVersion="7"/>
 
-    <application android:label="@string/app_name" android:icon="@drawable/tiger_machine">
+    <application android:label="@string/app_name"
+                 android:icon="@drawable/tiger_machine"
+                 android:theme="@android:style/Theme.Light">
 
         <activity android:name=".SpinActivity"
                   android:label="@string/app_name">

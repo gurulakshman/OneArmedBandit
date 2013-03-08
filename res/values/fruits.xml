@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="fruits">
+        <item>@drawable/fruits1</item>
+        <item>@drawable/fruits2</item>
+        <item>@drawable/fruits3</item>
+        <item>@drawable/fruits4</item>
+        <item>@drawable/fruits5</item>
+        <item>@drawable/fruits6</item>
+        <item>@drawable/fruits7</item>
+        <item>@drawable/fruits8</item>
+        <item>@drawable/fruits9</item>
+        <item>@drawable/fruits10</item>
+    </array>
+</resources>

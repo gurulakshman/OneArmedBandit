@@ -3,6 +3,7 @@ package edu.sdu.onearmedbandit;
 import android.app.Activity;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -78,10 +79,7 @@ public class SpinActivity extends Activity implements OnClickListener
         switch(v.getId())
         {
             case R.id.button_start:
-                for (int i=0; i<reels.length; i++)
-                {
-                    spin(i);
-                }
+                new SpinTask().execute();
                 break;
             case R.id.button_stop_0:
                 break;
@@ -90,18 +88,36 @@ public class SpinActivity extends Activity implements OnClickListener
         }
     }
 
-    private void spin(int i)
+    private class SpinTask extends AsyncTask<Void, Integer, Void>
     {
-        reels[i].idx = (reels[i].idx + 1) % fruits.size();
-        reels[i].view.setImageDrawable(fruits.get(reels[i].idx));
-    }
-//    new Thread(new Runnable() {
-//        public void run() {
-//            Bitmap b = loadImageFromNetwork("http://example.com/image.png");
-//            mImageView.setImageBitmap(b);
+//        @Override
+//        protected void onPreExecute()
+//        {
 //        }
-//    }).start();
 
+        protected Void doInBackground(Void... params)
+        {
+            // Increase index for each reel
+            for (int i=0; i<reels.length; i++)
+            {
+                reels[i].idx = (reels[i].idx + 1) % fruits.size();
+                publishProgress(i);
+            }
+
+            return (Void) null;
+        }
+
+        protected void onProgressUpdate(Integer... i)
+        {
+            // Update images on the i[0]'th reel
+            reels[i[0]].view.setImageDrawable(fruits.get(reels[i[0]].idx));
+        }
+
+//        @Override
+//        protected void onPostExecute(Integer i)
+//        {
+//        }
+    }
 
     private String titleText()
     {

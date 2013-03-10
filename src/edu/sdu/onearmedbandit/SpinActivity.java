@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -19,39 +20,32 @@ public class SpinActivity extends Activity implements OnClickListener
 {
     private final static String TAG = "edu.sdu.onearmedbandit";
     private Button bStart;
-    private Button[] bStop;
-    private TextView tViewone;
+    private TextView tView;
     private ArrayList<Drawable> fruits;
     private Reel[] reels;
     private Random gen;
-    private Handler stopSpinTask;
+    private Handler spinTaskHandler;
+    private int spinTaskMsgCount;
 
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.spinactivity);
+        setContentView(R.layout.main);
         setTitle(titleText());
         gen = new Random();
-        stopSpinTask = new Handler();
-
-        Log.v(TAG, "Initializing ...");
+        spinTaskMsgCount = 0;
 
         // Get interface elements
         reels = new Reel[3];
         for (int i=0; i<reels.length; i++) {reels[i] = new Reel();}
-        bStop = new Button[3];
         reels[0].view = (ImageView) findViewById(R.id.reel0);
         reels[1].view = (ImageView) findViewById(R.id.reel1);
         reels[2].view = (ImageView) findViewById(R.id.reel2);
-        tViewone = (TextView) findViewById(R.id.textView);
+        tView = (TextView) findViewById(R.id.textView);
         bStart = (Button) findViewById(R.id.button_start);
-        bStop[0] = (Button) findViewById(R.id.button_stop_0);
-        bStop[1] = (Button) findViewById(R.id.button_stop_1);
-        bStop[2] = (Button) findViewById(R.id.button_stop_2);
 
         // Attach button listeners
-        for (int i=0; i<bStop.length; i++) {bStop[i].setOnClickListener(this);}
         bStart.setOnClickListener(this);
 
         // Construct array of fruit drawables
@@ -73,7 +67,42 @@ public class SpinActivity extends Activity implements OnClickListener
             reels[i].idx = r;
         }
 
-        Log.v(TAG, "Done.");
+        // Set up message handler
+        spinTaskHandler = new Handler()
+        {
+            @Override
+            public void handleMessage(Message msg)
+            {
+                switch (msg.what)
+                {
+                    case 0:
+                    case 1:
+                    case 2:
+                        Log.v(TAG, "Stopped (" + msg.what + ")");
+                        if (spinTaskMsgCount == 2) //All three are done
+                        {
+                            spinTaskMsgCount = 0;
+                            if (isWinner())
+                            {
+                                tView.setText("You WIN!");
+                            }
+                            else
+                            {
+                                tView.setText("You LOOSE!");
+                            }
+                            bStart.setClickable(true);
+                        }
+                        else
+                        {
+                            spinTaskMsgCount++;
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        };
     }
 
     @Override
@@ -82,23 +111,29 @@ public class SpinActivity extends Activity implements OnClickListener
         switch(v.getId())
         {
             case R.id.button_start:
+                SpinTask[] spinners = new SpinTask[reels.length];
+                bStart.setClickable(false);
+                tView.setText("");
+
                 for (int i=0; i<reels.length; i++)
                 {
-                    new SpinTask().execute(i);
+                    spinners[i] = new SpinTask();
+                    spinners[i].execute(i);
                 }
+
                 break;
             default:
                 break;
         }
     }
 
-    private class SpinTask extends AsyncTask<Integer, Integer, Void>
+    private class SpinTask extends AsyncTask<Integer, Integer, Integer>
     {
         protected void onPreExecute()
         {
-            int runtime = gen.nextInt(5000) + 5000;
+            int runtime = gen.nextInt(7000) + 3000;
 
-            stopSpinTask.postDelayed(
+            spinTaskHandler.postDelayed(
                 new Runnable()
                 {
                     public void run()
@@ -109,12 +144,12 @@ public class SpinActivity extends Activity implements OnClickListener
                 runtime);
         }
 
-        protected Void doInBackground(Integer... i)
+        protected Integer doInBackground(Integer... i)
         {
-            for (int k=0; k<20; k++)
+            for (int k=0; k<30; k++)
             {
                 try {
-                    Thread.sleep(300);
+                    Thread.sleep(350);
                 } catch (InterruptedException e) {
                     Log.i(TAG, "", e);
                 }
@@ -125,19 +160,45 @@ public class SpinActivity extends Activity implements OnClickListener
                 if (isCancelled()) {break;}
             }
 
-            return (Void) null;
+            return i[0];
         }
 
         protected void onProgressUpdate(Integer... i)
         {
-            // Update images on the i[0]'th reel
             reels[i[0]].view.setImageDrawable(fruits.get(reels[i[0]].idx));
         }
 
         protected void onPostExecute(Integer i)
         {
-
+            spinTaskHandler.sendEmptyMessage(i);
         }
+
+        protected void onCancelled(Integer i)
+        {
+            spinTaskHandler.sendEmptyMessage(i);
+        }
+    }
+
+    private boolean isWinner()
+    {
+        boolean win = false;
+        int t = reels[0].idx;
+
+        for (int i=0; i<reels.length; i++)
+        {
+            if (t != reels[i].idx)
+            {
+                win = false;
+                break;
+            }
+            else
+            {
+                t = reels[i].idx;
+                win = true;
+            }
+        }
+
+        return win;
     }
 
     private String titleText()

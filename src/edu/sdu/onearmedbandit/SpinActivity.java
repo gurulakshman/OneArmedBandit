@@ -5,6 +5,7 @@ import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -22,14 +23,17 @@ public class SpinActivity extends Activity implements OnClickListener
     private TextView tViewone;
     private ArrayList<Drawable> fruits;
     private Reel[] reels;
+    private Random gen;
+    private Handler stopSpinTask;
 
-    /* Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.spinactivity);
         setTitle(titleText());
+        gen = new Random();
+        stopSpinTask = new Handler();
 
         Log.v(TAG, "Initializing ...");
 
@@ -60,7 +64,6 @@ public class SpinActivity extends Activity implements OnClickListener
         fruits.trimToSize();
 
         // Set random start images
-        Random gen = new Random();
         for (int i=0; i<reels.length; i++)
         {
             int r = gen.nextInt(fruits.size());
@@ -79,29 +82,47 @@ public class SpinActivity extends Activity implements OnClickListener
         switch(v.getId())
         {
             case R.id.button_start:
-                new SpinTask().execute();
-                break;
-            case R.id.button_stop_0:
+                for (int i=0; i<reels.length; i++)
+                {
+                    new SpinTask().execute(i);
+                }
                 break;
             default:
                 break;
         }
     }
 
-    private class SpinTask extends AsyncTask<Void, Integer, Void>
+    private class SpinTask extends AsyncTask<Integer, Integer, Void>
     {
-//        @Override
-//        protected void onPreExecute()
-//        {
-//        }
-
-        protected Void doInBackground(Void... params)
+        protected void onPreExecute()
         {
-            // Increase index for each reel
-            for (int i=0; i<reels.length; i++)
+            int runtime = gen.nextInt(5000) + 5000;
+
+            stopSpinTask.postDelayed(
+                new Runnable()
+                {
+                    public void run()
+                    {
+                        SpinTask.this.cancel(true);
+                    }
+                },
+                runtime);
+        }
+
+        protected Void doInBackground(Integer... i)
+        {
+            for (int k=0; k<20; k++)
             {
-                reels[i].idx = (reels[i].idx + 1) % fruits.size();
-                publishProgress(i);
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException e) {
+                    Log.i(TAG, "", e);
+                }
+
+                reels[i[0]].idx = (reels[i[0]].idx + 1) % fruits.size();
+                publishProgress(i[0]);
+
+                if (isCancelled()) {break;}
             }
 
             return (Void) null;
@@ -113,10 +134,10 @@ public class SpinActivity extends Activity implements OnClickListener
             reels[i[0]].view.setImageDrawable(fruits.get(reels[i[0]].idx));
         }
 
-//        @Override
-//        protected void onPostExecute(Integer i)
-//        {
-//        }
+        protected void onPostExecute(Integer i)
+        {
+
+        }
     }
 
     private String titleText()

@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">One-Armed Bandit</string>
     <string name="spinactivity_start">Start</string>
+    <string name="spinactivity_stop">Stop</string>
 </resources>

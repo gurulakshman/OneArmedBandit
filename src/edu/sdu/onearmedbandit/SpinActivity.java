@@ -5,26 +5,21 @@ import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.Toast;
 import java.util.HashMap;
-import java.util.Random;
 
 public class SpinActivity extends Activity implements OnClickListener
 {
-    private final static String TAG = "edu.sdu.onearmedbandit";
-    private Button bStart;
-    private TextView tView;
+    private final static String mTAG = "edu.sdu.onearmedbandit";
+    private Button mBtnStart;
+    private Button[] mBtnStop;
     private Reel[] reels;
-    private Random gen;
-    private Handler spinTaskHandler;
-    private int spinTaskMsgCount;
+    private SpinAnimTask[] mSpinAnimTasks;
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -32,14 +27,14 @@ public class SpinActivity extends Activity implements OnClickListener
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         setTitle(titleText());
-        gen = new Random();
-        spinTaskMsgCount = 0;
 
-        tView = (TextView) findViewById(R.id.textView);
-        bStart = (Button) findViewById(R.id.button_start);
-
-        bStart.setOnClickListener(this);
-
+        mBtnStart = (Button) findViewById(R.id.button_start);
+        mBtnStop = new Button[3];
+        mBtnStop[0] = (Button) findViewById(R.id.button_stop0);
+        mBtnStop[1] = (Button) findViewById(R.id.button_stop1);
+        mBtnStop[2] = (Button) findViewById(R.id.button_stop2);
+        mBtnStart.setOnClickListener(this);
+        for (int i=0; i<3; i++) {mBtnStop[i].setOnClickListener(this);}
 
         // Construct map of fruit drawables
         TypedArray typedfruits = getResources().obtainTypedArray(R.array.fruits);
@@ -50,50 +45,18 @@ public class SpinActivity extends Activity implements OnClickListener
         }
         typedfruits.recycle();
 
-
+        // Set up three reels, each connected to an ImageView
         reels = new Reel[3];
         reels[0] = new Reel((ImageView) findViewById(R.id.reel0), fruits);
         reels[1] = new Reel((ImageView) findViewById(R.id.reel1), fruits);
         reels[2] = new Reel((ImageView) findViewById(R.id.reel2), fruits);
 
-        for (int i=0; i<3; i++) {reels[i].nextFrame();}
-
-        // Set up message handler
-        spinTaskHandler = new Handler()
+        // Set random start frame, just for looks.
+        for (int i=0; i<reels.length; i++)
         {
-            @Override
-            public void handleMessage(Message msg)
-            {
-                switch (msg.what)
-                {
-                    case 0:
-                    case 1:
-                    case 2:
-                        Log.v(TAG, "Stopped (" + msg.what + ")");
-                        if (spinTaskMsgCount == 2) //All three are done
-                        {
-                            spinTaskMsgCount = 0;
-                            if (isWinner())
-                            {
-                                tView.setText("You WIN!");
-                            }
-                            else
-                            {
-                                tView.setText("You LOOSE!");
-                            }
-                            bStart.setClickable(true);
-                        }
-                        else
-                        {
-                            spinTaskMsgCount++;
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-        };
+            reels[i].shuffleFruits();
+            reels[i].next();
+        }
     }
 
     @Override
@@ -102,98 +65,106 @@ public class SpinActivity extends Activity implements OnClickListener
         switch(v.getId())
         {
             case R.id.button_start:
-                SpinTask[] spinners = new SpinTask[reels.length];
-                bStart.setClickable(false);
-                tView.setText("");
-
+                mBtnStart.setClickable(false);
+                mSpinAnimTasks = new SpinAnimTask[reels.length];
                 for (int i=0; i<reels.length; i++)
                 {
-                    spinners[i] = new SpinTask();
-                    spinners[i].execute(i);
+                    reels[i].shuffleFruits();
+                    mSpinAnimTasks[i] = new SpinAnimTask();
+                    mSpinAnimTasks[i].execute(i);
                 }
-
                 break;
+            case R.id.button_stop0:
+                mSpinAnimTasks[0].cancel(true);
+                break;
+            case R.id.button_stop1:
+                mSpinAnimTasks[1].cancel(true);
+                break;
+            case R.id.button_stop2:
+                mSpinAnimTasks[2].cancel(true);
             default:
                 break;
         }
     }
 
-    private class SpinTask extends AsyncTask<Integer, Integer, Integer>
+    private class SpinAnimTask extends AsyncTask<Integer, Integer, Integer>
     {
-        protected void onPreExecute()
-        {
-            int runtime = gen.nextInt(7000) + 3000;
-
-            spinTaskHandler.postDelayed(
-                new Runnable()
-                {
-                    public void run()
-                    {
-                        SpinTask.this.cancel(true);
-                    }
-                },
-                runtime);
-        }
-
-        protected Integer doInBackground(Integer... i)
+        protected Integer doInBackground(Integer... p)
         {
             for (int k=0; k<30; k++)
             {
                 try {
                     Thread.sleep(350);
                 } catch (InterruptedException e) {
-                    Log.i(TAG, "", e);
+                    Log.i(mTAG, "", e);
                 }
 
-                publishProgress(i[0]);
+                publishProgress(p[0]);
 
                 if (isCancelled()) {break;}
             }
-
-            return i[0];
+            return p[0];
         }
 
-        protected void onProgressUpdate(Integer... i)
+        protected void onProgressUpdate(Integer... p)
         {
-            reels[i[0]].nextFrame();
+            reels[p[0]].next();
         }
 
-        protected void onPostExecute(Integer i)
+        protected void onPostExecute(Integer p)
         {
-            spinTaskHandler.sendEmptyMessage(i);
+            end(p);
         }
 
-        protected void onCancelled(Integer i)
+        protected void onCancelled(Integer p)
         {
-            spinTaskHandler.sendEmptyMessage(i);
+            end(p);
+        }
+
+        private void end(Integer p)
+        {
+            if ((mSpinAnimTasks[0].getStatus() == AsyncTask.Status.FINISHED || mSpinAnimTasks[0].isCancelled())
+                    && (mSpinAnimTasks[1].getStatus() == AsyncTask.Status.FINISHED || mSpinAnimTasks[1].isCancelled())
+                    && (mSpinAnimTasks[2].getStatus() == AsyncTask.Status.FINISHED || mSpinAnimTasks[2].isCancelled()))
+                // FIXME shiiiat man (msg handler?)
+            {
+                CharSequence text = "";
+                if (isWinner())
+                {
+                    text = "Win!";
+                }
+                else
+                {
+                    text = ":(";
+                }
+                Toast toast = Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT);
+                toast.show();
+                mBtnStart.setClickable(true);
+            }
         }
     }
 
     private boolean isWinner()
     {
         boolean win = false;
-        int t = reels[0].getKey();
-
-        for (int i=0; i<reels.length; i++)
+        for (int i=0; i<reels.length-1; i++)
         {
-            if (t != reels[i].getKey())
+            if (reels[i].getCurrentKey() != reels[i+1].getCurrentKey())
             {
                 win = false;
                 break;
             }
             else
             {
-                t = reels[i].getKey();
                 win = true;
             }
         }
-
         return win;
     }
 
     private String titleText()
     {
-        return String.format("%1$s (%2$s)",
+        return String.format("%s (%s)",
                 getString(R.string.app_name),
                 getString(R.string.bi_versionname));
     }

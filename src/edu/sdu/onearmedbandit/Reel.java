@@ -21,18 +21,22 @@ public class Reel
         mCurrFruitIdx = 0;
         shuffledKeys = new Integer[mSize];
         mFruits.keySet().toArray(shuffledKeys);
-        shuffleKeys();
     }
 
-    public void nextFrame()
+    public void next()
     {
         mCurrFruitIdx = (mCurrFruitIdx + 1) % mSize;
         mView.setImageDrawable((Drawable) mFruits.get(shuffledKeys[mCurrFruitIdx]));
     }
 
-    public int getKey()
+    public int getCurrentKey()
     {
         return shuffledKeys[mCurrFruitIdx];
+    }
+
+    public void shuffleFruits()
+    {
+        shuffleKeys();
     }
 
     private void shuffleKeys()

@@ -13,7 +13,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 public class SpinActivity extends Activity implements OnClickListener
@@ -21,7 +21,6 @@ public class SpinActivity extends Activity implements OnClickListener
     private final static String TAG = "edu.sdu.onearmedbandit";
     private Button bStart;
     private TextView tView;
-    private ArrayList<Drawable> fruits;
     private Reel[] reels;
     private Random gen;
     private Handler spinTaskHandler;
@@ -36,36 +35,28 @@ public class SpinActivity extends Activity implements OnClickListener
         gen = new Random();
         spinTaskMsgCount = 0;
 
-        // Get interface elements
-        reels = new Reel[3];
-        for (int i=0; i<reels.length; i++) {reels[i] = new Reel();}
-        reels[0].view = (ImageView) findViewById(R.id.reel0);
-        reels[1].view = (ImageView) findViewById(R.id.reel1);
-        reels[2].view = (ImageView) findViewById(R.id.reel2);
         tView = (TextView) findViewById(R.id.textView);
         bStart = (Button) findViewById(R.id.button_start);
 
-        // Attach button listeners
         bStart.setOnClickListener(this);
 
-        // Construct array of fruit drawables
+
+        // Construct map of fruit drawables
         TypedArray typedfruits = getResources().obtainTypedArray(R.array.fruits);
-        fruits = new ArrayList<Drawable>();
+        HashMap fruits = new HashMap<Integer, Drawable>();
         for (int i=0; i<typedfruits.length(); i++)
         {
-            fruits.add(typedfruits.getDrawable(i));
+            fruits.put(i, typedfruits.getDrawable(i));
         }
-        fruits.trimToSize();
+        typedfruits.recycle();
 
-        // Set random start images
-        for (int i=0; i<reels.length; i++)
-        {
-            int r = gen.nextInt(fruits.size());
-            if (i>1 && r==reels[i-2].idx)
-                {r = (r+3)%fruits.size();} //Ensure they are not all the same
-            reels[i].view.setImageDrawable(fruits.get(r));
-            reels[i].idx = r;
-        }
+
+        reels = new Reel[3];
+        reels[0] = new Reel((ImageView) findViewById(R.id.reel0), fruits);
+        reels[1] = new Reel((ImageView) findViewById(R.id.reel1), fruits);
+        reels[2] = new Reel((ImageView) findViewById(R.id.reel2), fruits);
+
+        for (int i=0; i<3; i++) {reels[i].nextFrame();}
 
         // Set up message handler
         spinTaskHandler = new Handler()
@@ -154,7 +145,6 @@ public class SpinActivity extends Activity implements OnClickListener
                     Log.i(TAG, "", e);
                 }
 
-                reels[i[0]].idx = (reels[i[0]].idx + 1) % fruits.size();
                 publishProgress(i[0]);
 
                 if (isCancelled()) {break;}
@@ -165,7 +155,7 @@ public class SpinActivity extends Activity implements OnClickListener
 
         protected void onProgressUpdate(Integer... i)
         {
-            reels[i[0]].view.setImageDrawable(fruits.get(reels[i[0]].idx));
+            reels[i[0]].nextFrame();
         }
 
         protected void onPostExecute(Integer i)
@@ -182,18 +172,18 @@ public class SpinActivity extends Activity implements OnClickListener
     private boolean isWinner()
     {
         boolean win = false;
-        int t = reels[0].idx;
+        int t = reels[0].getKey();
 
         for (int i=0; i<reels.length; i++)
         {
-            if (t != reels[i].idx)
+            if (t != reels[i].getKey())
             {
                 win = false;
                 break;
             }
             else
             {
-                t = reels[i].idx;
+                t = reels[i].getKey();
                 win = true;
             }
         }

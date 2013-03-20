@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+        <ListPreference
+                android:key="bet"
+                android:title="Choose bet"
+                android:entries="@array/bet_entries"
+                android:entryValues="@array/bet_entryvalues"
+                android:dialogTitle="test" />
+
+</PreferenceScreen>

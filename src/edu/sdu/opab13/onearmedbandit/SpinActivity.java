@@ -1,4 +1,4 @@
-package edu.sdu.onearmedbandit;
+package edu.sdu.opab13.onearmedbandit;
 
 import android.app.Activity;
 import android.content.res.TypedArray;
@@ -15,16 +15,16 @@ import java.util.HashMap;
 
 public class SpinActivity extends Activity implements OnClickListener
 {
-    private final static String mTAG = "edu.sdu.onearmedbandit";
+    private final static String mTAG = "edu.sdu.opab13.onearmedbandit";
     private Button mBtnStart;
     private Button[] mBtnStop;
     private Reel[] reels;
     private SpinAnimTask[] mSpinAnimTasks;
 
     @Override
-    public void onCreate(Bundle savedInstanceState)
+    public void onCreate(Bundle icicle)
     {
-        super.onCreate(savedInstanceState);
+        super.onCreate(icicle);
         setContentView(R.layout.main);
         setTitle(titleText());
 
@@ -71,6 +71,9 @@ public class SpinActivity extends Activity implements OnClickListener
                 {
                     reels[i].shuffleFruits();
                     mSpinAnimTasks[i] = new SpinAnimTask();
+
+                    // Concurrent or sequential?
+                    // See http://www.jayway.com/2012/11/28/is-androids-asynctask-executing-tasks-serially-or-concurrently/
                     mSpinAnimTasks[i].execute(i);
                 }
                 break;

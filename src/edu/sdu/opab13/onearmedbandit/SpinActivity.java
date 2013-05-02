@@ -243,8 +243,17 @@ public class SpinActivity extends Activity implements OnClickListener
 
     private int getBet()
     {
+        int res;
         SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
-        return Integer.parseInt(p.getString("list_preference", ""));
+
+        try {
+            res = Integer.parseInt(p.getString("list_preference", ""));
+        } catch (NumberFormatException e) {
+            Log.i(mTAG, "", e);
+            res = 0;
+        }
+
+        return res;
     }
 }
 

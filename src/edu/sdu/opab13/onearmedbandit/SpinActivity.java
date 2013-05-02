@@ -17,6 +17,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class SpinActivity extends Activity implements OnClickListener
@@ -133,18 +134,7 @@ public class SpinActivity extends Activity implements OnClickListener
                         Log.d(mTAG, "All three reels stopped");
                         mAllRunning = false;
 
-                        int bet = getBet();
-
-                        if (isWinner())
-                        {
-                            Log.d(mTAG, "Result: WIN " + bet);
-                            Toast.makeText(getApplicationContext(), "You win " + bet + "€", Toast.LENGTH_SHORT).show();
-                        }
-                        else
-                        {
-                            Log.d(mTAG, "Result: LOSS " + bet);
-                            Toast.makeText(getApplicationContext(), "You loose " + bet + "€", Toast.LENGTH_SHORT).show();
-                        }
+                        showResult();
 
                         mBtnStart.setClickable(true);
                     }
@@ -156,22 +146,52 @@ public class SpinActivity extends Activity implements OnClickListener
         }
     }
 
-    private boolean isWinner()
+
+    private void showResult()
     {
-        boolean win = false;
-        for (int i=0; i<mNumReels-1; i++)
+        int prize = 0;
+        int bet = getBet();
+        ArrayList equals = new ArrayList<Integer>();
+
+        // Make a list of reels that have the same fruit key
+        for (int i=0; i<mNumReels; i++)
         {
-            if (reels[i].getCurrentKey() != reels[i+1].getCurrentKey())
+            for (int j=0; j<mNumReels; j++)
             {
-                win = false;
-                break;
-            }
-            else
-            {
-                win = true;
+                if (i != j &&
+                    reels[i].getCurrentKey() == reels[j].getCurrentKey())
+                {
+                    equals.add(i);
+                }
             }
         }
-        return win;
+
+        if (equals.isEmpty())
+        {
+            Log.d(mTAG, "Result: LOSS. (bet=" + bet + " prize=" + prize + ")");
+            Toast.makeText(getApplicationContext(), "You loose " + bet + "€", Toast.LENGTH_SHORT).show();
+        }
+        else
+        {
+            if (equals.size() == 2)
+            {
+                prize = bet*5;
+            }
+            else if (equals.size() == 3)
+            {
+                prize = bet*50;
+            }
+
+            String text = "You win " + prize + "€ on reels";
+            for (int i=0; i<equals.size(); i++)
+            {
+                text = text.concat( String.format(" %d", ((Integer)equals.get(i)).intValue()) );
+                Log.d(mTAG, "eq: " + i);
+            }
+
+            Log.d(mTAG, "Result: WIN. (bet=" + bet + " prize=" + prize + ")");
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private String titleText()

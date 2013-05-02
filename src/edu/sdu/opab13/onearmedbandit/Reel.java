@@ -72,11 +72,7 @@ public class Reel implements Runnable
             try {
                 Thread.sleep(350);
             } catch (InterruptedException e) {
-//                mRunning = false;
-//                Log.d(mTAG, "mRunning=" + mRunning);
-//                mMsgHandler.sendEmptyMessage(Message.encodeMsg(Message.STOPPED, mReelId));
                 Log.i(mTAG, "", e);
-//                break;
             }
 
             // Request next frame on UI thread
@@ -108,10 +104,6 @@ public class Reel implements Runnable
         {
             mCurrFruitIdx = (mCurrFruitIdx + 1) % mSize;
             mView.setImageDrawable((Drawable) mFruits.get(mShuffledKeys[mCurrFruitIdx]));
-        }
-        else
-        {
-            Log.w(mTAG, "[" + mReelId + "] next() called but not running");
         }
     }
 

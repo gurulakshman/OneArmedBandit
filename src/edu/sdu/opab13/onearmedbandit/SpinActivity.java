@@ -1,11 +1,17 @@
 package edu.sdu.opab13.onearmedbandit;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -15,11 +21,13 @@ import java.util.HashMap;
 
 public class SpinActivity extends Activity implements OnClickListener
 {
-    private final static String mTAG = "edu.sdu.opab13.onearmedbandit";
+    private final static String mTAG = "SpinActivity";
+    private final static int mNumReels = 3;
     private Button mBtnStart;
     private Button[] mBtnStop;
     private Reel[] reels;
-    private SpinAnimTask[] mSpinAnimTasks;
+    private Thread[] mSpinThreads;
+    private boolean mAllRunning;
 
     @Override
     public void onCreate(Bundle icicle)
@@ -27,6 +35,8 @@ public class SpinActivity extends Activity implements OnClickListener
         super.onCreate(icicle);
         setContentView(R.layout.main);
         setTitle(titleText());
+
+        loadPref();
 
         mBtnStart = (Button) findViewById(R.id.button_start);
         mBtnStop = new Button[3];
@@ -45,17 +55,22 @@ public class SpinActivity extends Activity implements OnClickListener
         }
         typedfruits.recycle();
 
+        // Message handler for UI thread
+        Handler msgHandler = new SpinActivityHandler();
+
         // Set up three reels, each connected to an ImageView
-        reels = new Reel[3];
-        reels[0] = new Reel((ImageView) findViewById(R.id.reel0), fruits);
-        reels[1] = new Reel((ImageView) findViewById(R.id.reel1), fruits);
-        reels[2] = new Reel((ImageView) findViewById(R.id.reel2), fruits);
+        reels = new Reel[mNumReels];
+        reels[0] = new Reel(0, (ImageView) findViewById(R.id.reel0), fruits, msgHandler);
+        reels[1] = new Reel(1, (ImageView) findViewById(R.id.reel1), fruits, msgHandler);
+        reels[2] = new Reel(2, (ImageView) findViewById(R.id.reel2), fruits, msgHandler);
+
+        mAllRunning = false;
 
         // Set random start frame, just for looks.
-        for (int i=0; i<reels.length; i++)
+        for (int i=0; i<mNumReels; i++)
         {
             reels[i].shuffleFruits();
-            reels[i].next();
+            reels[i].next(true);
         }
     }
 
@@ -66,83 +81,77 @@ public class SpinActivity extends Activity implements OnClickListener
         {
             case R.id.button_start:
                 mBtnStart.setClickable(false);
-                mSpinAnimTasks = new SpinAnimTask[reels.length];
-                for (int i=0; i<reels.length; i++)
-                {
-                    reels[i].shuffleFruits();
-                    mSpinAnimTasks[i] = new SpinAnimTask();
 
-                    // Concurrent or sequential?
-                    // See http://www.jayway.com/2012/11/28/is-androids-asynctask-executing-tasks-serially-or-concurrently/
-                    mSpinAnimTasks[i].execute(i);
+                // One thread for each reel
+                mSpinThreads = new Thread[mNumReels];
+                for (int i=0; i<mNumReels; i++)
+                {
+                    mSpinThreads[i] = new Thread(reels[i]);
+                    mSpinThreads[i].start();
                 }
+
+                mAllRunning = true;
+
                 break;
             case R.id.button_stop0:
-                mSpinAnimTasks[0].cancel(true);
+                reels[0].stop();
                 break;
             case R.id.button_stop1:
-                mSpinAnimTasks[1].cancel(true);
+                reels[1].stop();
                 break;
             case R.id.button_stop2:
-                mSpinAnimTasks[2].cancel(true);
+                reels[2].stop();
+                break;
             default:
                 break;
         }
     }
 
-    private class SpinAnimTask extends AsyncTask<Integer, Integer, Integer>
+    // Message handler to process messages passed to the UI thread.
+    private class SpinActivityHandler extends Handler
     {
-        protected Integer doInBackground(Integer... p)
+        @Override
+        public void handleMessage(Message msg)
         {
-            for (int k=0; k<30; k++)
+            switch (Reel.Message.getMsg(msg.what))
             {
-                try {
-                    Thread.sleep(350);
-                } catch (InterruptedException e) {
-                    Log.i(mTAG, "", e);
-                }
+                case Reel.Message.TEST:
+                    Toast.makeText(getApplicationContext(), "TEST", Toast.LENGTH_SHORT).show();
+                    break;
+                case Reel.Message.REQUEST_NEXT_FRAME:
+                    reels[Reel.Message.getId(msg.what)].next();
+                    break;
+                case Reel.Message.STOPPED:
+                    Log.d(mTAG, "Stopped " + Reel.Message.getId(msg.what));
 
-                publishProgress(p[0]);
+                    // Check result when all reels have stopped.
+                    if (!reels[0].isRunning() &&
+                        !reels[1].isRunning() &&
+                        !reels[2].isRunning() &&
+                        mAllRunning)
+                    {
+                        Log.d(mTAG, "All three reels stopped");
+                        mAllRunning = false;
 
-                if (isCancelled()) {break;}
-            }
-            return p[0];
-        }
+                        int bet = getBet();
 
-        protected void onProgressUpdate(Integer... p)
-        {
-            reels[p[0]].next();
-        }
+                        if (isWinner())
+                        {
+                            Log.d(mTAG, "Result: WIN " + bet);
+                            Toast.makeText(getApplicationContext(), "You win " + bet + "€", Toast.LENGTH_SHORT).show();
+                        }
+                        else
+                        {
+                            Log.d(mTAG, "Result: LOSS " + bet);
+                            Toast.makeText(getApplicationContext(), "You loose " + bet + "€", Toast.LENGTH_SHORT).show();
+                        }
 
-        protected void onPostExecute(Integer p)
-        {
-            end(p);
-        }
+                        mBtnStart.setClickable(true);
+                    }
 
-        protected void onCancelled(Integer p)
-        {
-            end(p);
-        }
-
-        private void end(Integer p)
-        {
-            if ((mSpinAnimTasks[0].getStatus() == AsyncTask.Status.FINISHED || mSpinAnimTasks[0].isCancelled())
-                    && (mSpinAnimTasks[1].getStatus() == AsyncTask.Status.FINISHED || mSpinAnimTasks[1].isCancelled())
-                    && (mSpinAnimTasks[2].getStatus() == AsyncTask.Status.FINISHED || mSpinAnimTasks[2].isCancelled()))
-                // FIXME shiiiat man (msg handler?)
-            {
-                CharSequence text = "";
-                if (isWinner())
-                {
-                    text = "Win!";
-                }
-                else
-                {
-                    text = ":(";
-                }
-                Toast toast = Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT);
-                toast.show();
-                mBtnStart.setClickable(true);
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -150,7 +159,7 @@ public class SpinActivity extends Activity implements OnClickListener
     private boolean isWinner()
     {
         boolean win = false;
-        for (int i=0; i<reels.length-1; i++)
+        for (int i=0; i<mNumReels-1; i++)
         {
             if (reels[i].getCurrentKey() != reels[i+1].getCurrentKey())
             {
@@ -170,6 +179,52 @@ public class SpinActivity extends Activity implements OnClickListener
         return String.format("%s (%s)",
                 getString(R.string.app_name),
                 getString(R.string.bi_versionname));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.activity_main, menu);
+        return true;
+    }
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+
+		/*
+		 * Because it's onlt ONE option in the menu.
+		 * In order to make it simple, We always start SetPreferenceActivity
+		 * without checking.
+		 */
+
+		Intent intent = new Intent();
+        intent.setClass(this, SettingsActivity.class);
+        startActivityForResult(intent, 0);
+
+        return true;
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		// TODO Auto-generated method stub
+		//super.onActivityResult(requestCode, resultCode, data);
+
+		/*
+		 * To make it simple, always re-load Preference setting.
+		 */
+
+		loadPref();
+	}
+
+	private void loadPref(){
+		SharedPreferences mySharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+    	String myListPreference = mySharedPreferences.getString("list_preference", "None selected");
+	}
+
+    private int getBet()
+    {
+        SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
+        return Integer.parseInt(p.getString("list_preference", ""));
     }
 }
 

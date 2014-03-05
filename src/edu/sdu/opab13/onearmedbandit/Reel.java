@@ -7,42 +7,39 @@ import android.widget.ImageView;
 import java.util.HashMap;
 import java.util.Random;
 
-public class Reel implements Runnable
-{
-    private final static String mTAG = "Reel";
-    private int mReelId;
-    private ImageView mView;
-    private HashMap mFruits;
-    private int mSize;
-    private int mCurrFruitIdx;
-    private Integer[] mShuffledKeys;
-    private Handler mMsgHandler;
-    private boolean mRunning;
+public class Reel implements Runnable {
 
-    public static class Message
-    {
+    private final static String mTAG = "Reel";
+
+    private final ImageView mView;
+    private final HashMap mFruits;
+    private final Integer[] mShuffledKeys;
+    private final Handler mMsgHandler;
+    private final int mReelId;
+    private final int mSize;
+    private boolean mRunning;
+    private int mCurrFruitIdx;
+
+    public static class Message {
+
         public final static int TEST = 1;
         public final static int REQUEST_NEXT_FRAME = 2;
         public final static int STOPPED = 3;
 
-        private static int encodeMsg(int msg, int id)
-        {
+        private static int encodeMsg(int msg, int id) {
             return (id << 16) | msg;
         }
 
-        public static int getMsg(int encodedMsg)
-        {
+        public static int getMsg(int encodedMsg) {
             return encodedMsg & 0xFFFF;
         }
 
-        public static int getId(int encodedMsg)
-        {
+        public static int getId(int encodedMsg) {
             return encodedMsg >> 16;
         }
     }
 
-    public Reel(int id, ImageView view, HashMap<Integer, Drawable> fruits, Handler handler)
-    {
+    public Reel(int id, ImageView view, HashMap<Integer, Drawable> fruits, Handler handler) {
         mView = view;
         mFruits = fruits;
         mSize = mFruits.size();
@@ -54,18 +51,14 @@ public class Reel implements Runnable
         mRunning = false;
     }
 
-    public void run()
-    {
-        synchronized(this)
-        {
+    public void run() {
+        synchronized (this) {
             mRunning = true;
         }
         Log.d(mTAG, "[" + mReelId + "] mRunning=" + mRunning);
 
-        for (int k=0; k<30; k++)
-        {
-            if (!mRunning)
-            {
+        for (int k = 0; k < 30; k++) {
+            if (!mRunning) {
                 break;
             }
 
@@ -79,27 +72,23 @@ public class Reel implements Runnable
             mMsgHandler.sendEmptyMessage(Message.encodeMsg(Message.REQUEST_NEXT_FRAME, mReelId));
         }
 
-        synchronized(this)
-        {
+        synchronized (this) {
             mRunning = false;
         }
         Log.d(mTAG, "[" + mReelId + "] mRunning=" + mRunning);
         mMsgHandler.sendEmptyMessage(Message.encodeMsg(Message.STOPPED, mReelId));
     }
 
-    public synchronized void stop()
-    {
+    public synchronized void stop() {
         mRunning = false;
     }
 
-    public synchronized boolean isRunning()
-    {
+    public synchronized boolean isRunning() {
         return mRunning;
     }
 
     // Only call next() from UI thread
-    public void next()
-    {
+    public void next() {
         if (mRunning) // Only allow next() if running
         {
             mCurrFruitIdx = (mCurrFruitIdx + 1) % mSize;
@@ -107,28 +96,23 @@ public class Reel implements Runnable
         }
     }
 
-    public void next(boolean force)
-    {
+    public void next(boolean force) {
         mCurrFruitIdx = (mCurrFruitIdx + 1) % mSize;
         mView.setImageDrawable((Drawable) mFruits.get(mShuffledKeys[mCurrFruitIdx]));
     }
 
-    public int getCurrentKey()
-    {
+    public int getCurrentKey() {
         return mShuffledKeys[mCurrFruitIdx];
     }
 
-    public void shuffleFruits()
-    {
+    public void shuffleFruits() {
         shuffleKeys();
     }
 
-    private void shuffleKeys()
-    {
+    private void shuffleKeys() {
         Random r = new Random();
-        for (int i=mShuffledKeys.length-1; i>0; i--)
-        {
-            int idx = r.nextInt(i+1);
+        for (int i = mShuffledKeys.length - 1; i > 0; i--) {
+            int idx = r.nextInt(i + 1);
             int tmp = mShuffledKeys[i];
             mShuffledKeys[i] = mShuffledKeys[idx];
             mShuffledKeys[idx] = tmp;

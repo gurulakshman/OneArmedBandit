@@ -20,8 +20,8 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class SpinActivity extends Activity implements OnClickListener
-{
+public class SpinActivity extends Activity implements OnClickListener {
+
     private final static String mTAG = "SpinActivity";
     private final static int mNumReels = 3;
     private Button mBtnStart;
@@ -31,8 +31,7 @@ public class SpinActivity extends Activity implements OnClickListener
     private boolean mAllRunning;
 
     @Override
-    public void onCreate(Bundle icicle)
-    {
+    public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         setContentView(R.layout.main);
         setTitle(titleText());
@@ -45,13 +44,14 @@ public class SpinActivity extends Activity implements OnClickListener
         mBtnStop[1] = (Button) findViewById(R.id.button_stop1);
         mBtnStop[2] = (Button) findViewById(R.id.button_stop2);
         mBtnStart.setOnClickListener(this);
-        for (int i=0; i<3; i++) {mBtnStop[i].setOnClickListener(this);}
+        for (int i = 0; i < 3; i++) {
+            mBtnStop[i].setOnClickListener(this);
+        }
 
         // Construct map of fruit drawables
         TypedArray typedfruits = getResources().obtainTypedArray(R.array.fruits);
         HashMap fruits = new HashMap<Integer, Drawable>();
-        for (int i=0; i<typedfruits.length(); i++)
-        {
+        for (int i = 0; i < typedfruits.length(); i++) {
             fruits.put(i, typedfruits.getDrawable(i));
         }
         typedfruits.recycle();
@@ -68,25 +68,21 @@ public class SpinActivity extends Activity implements OnClickListener
         mAllRunning = false;
 
         // Set random start frame, just for looks.
-        for (int i=0; i<mNumReels; i++)
-        {
+        for (int i = 0; i < mNumReels; i++) {
             reels[i].shuffleFruits();
             reels[i].next(true);
         }
     }
 
     @Override
-    public void onClick(View v)
-    {
-        switch(v.getId())
-        {
+    public void onClick(View v) {
+        switch (v.getId()) {
             case R.id.button_start:
                 mBtnStart.setClickable(false);
 
                 // One thread for each reel
                 mSpinThreads = new Thread[mNumReels];
-                for (int i=0; i<mNumReels; i++)
-                {
+                for (int i = 0; i < mNumReels; i++) {
                     mSpinThreads[i] = new Thread(reels[i]);
                     mSpinThreads[i].start();
                 }
@@ -109,13 +105,11 @@ public class SpinActivity extends Activity implements OnClickListener
     }
 
     // Message handler to process messages passed to the UI thread.
-    private class SpinActivityHandler extends Handler
-    {
+    private class SpinActivityHandler extends Handler {
+
         @Override
-        public void handleMessage(Message msg)
-        {
-            switch (Reel.Message.getMsg(msg.what))
-            {
+        public void handleMessage(Message msg) {
+            switch (Reel.Message.getMsg(msg.what)) {
                 case Reel.Message.TEST:
                     Toast.makeText(getApplicationContext(), "TEST", Toast.LENGTH_SHORT).show();
                     break;
@@ -126,11 +120,10 @@ public class SpinActivity extends Activity implements OnClickListener
                     Log.d(mTAG, "Stopped " + Reel.Message.getId(msg.what));
 
                     // Check result when all reels have stopped.
-                    if (!reels[0].isRunning() &&
-                        !reels[1].isRunning() &&
-                        !reels[2].isRunning() &&
-                        mAllRunning)
-                    {
+                    if (!reels[0].isRunning()
+                        && !reels[1].isRunning()
+                        && !reels[2].isRunning()
+                        && mAllRunning) {
                         Log.d(mTAG, "All three reels stopped");
                         mAllRunning = false;
 
@@ -146,46 +139,34 @@ public class SpinActivity extends Activity implements OnClickListener
         }
     }
 
-
-    private void showResult()
-    {
+    private void showResult() {
         int prize = 0;
         int bet = getBet();
         ArrayList equals = new ArrayList<Integer>();
 
         // Make a list of reels that have the same fruit key
-        for (int i=0; i<mNumReels; i++)
-        {
-            for (int j=0; j<mNumReels; j++)
-            {
-                if (i != j &&
-                    reels[i].getCurrentKey() == reels[j].getCurrentKey())
-                {
+        for (int i = 0; i < mNumReels; i++) {
+            for (int j = 0; j < mNumReels; j++) {
+                if (i != j
+                    && reels[i].getCurrentKey() == reels[j].getCurrentKey()) {
                     equals.add(i);
                 }
             }
         }
 
-        if (equals.isEmpty())
-        {
+        if (equals.isEmpty()) {
             Log.d(mTAG, "Result: LOSS. (bet=" + bet + " prize=" + prize + ")");
             Toast.makeText(getApplicationContext(), "You loose " + bet + "€", Toast.LENGTH_SHORT).show();
-        }
-        else
-        {
-            if (equals.size() == 2)
-            {
-                prize = bet*5;
-            }
-            else if (equals.size() == 3)
-            {
-                prize = bet*50;
+        } else {
+            if (equals.size() == 2) {
+                prize = bet * 5;
+            } else if (equals.size() == 3) {
+                prize = bet * 50;
             }
 
             String text = "You win " + prize + "€ on reels";
-            for (int i=0; i<equals.size(); i++)
-            {
-                text = text.concat( String.format(" %d", ((Integer)equals.get(i)).intValue()) );
+            for (int i = 0; i < equals.size(); i++) {
+                text = text.concat(String.format(" %d", ((Integer) equals.get(i)).intValue()));
                 Log.d(mTAG, "eq: " + i);
             }
 
@@ -194,11 +175,10 @@ public class SpinActivity extends Activity implements OnClickListener
         }
     }
 
-    private String titleText()
-    {
+    private String titleText() {
         return String.format("%s (%s)",
-                getString(R.string.app_name),
-                getString(R.string.bi_versionname));
+            getString(R.string.app_name),
+            getString(R.string.bi_versionname));
     }
 
     @Override
@@ -207,42 +187,39 @@ public class SpinActivity extends Activity implements OnClickListener
         return true;
     }
 
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
 
-		/*
-		 * Because it's onlt ONE option in the menu.
-		 * In order to make it simple, We always start SetPreferenceActivity
-		 * without checking.
-		 */
-
-		Intent intent = new Intent();
+        /*
+         * Because it's onlt ONE option in the menu.
+         * In order to make it simple, We always start SetPreferenceActivity
+         * without checking.
+         */
+        Intent intent = new Intent();
         intent.setClass(this, SettingsActivity.class);
         startActivityForResult(intent, 0);
 
         return true;
-	}
+    }
 
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		// TODO Auto-generated method stub
-		//super.onActivityResult(requestCode, resultCode, data);
+        //super.onActivityResult(requestCode, resultCode, data);
 
-		/*
-		 * To make it simple, always re-load Preference setting.
-		 */
+        /*
+         * To make it simple, always re-load Preference setting.
+         */
+        loadPref();
+    }
 
-		loadPref();
-	}
+    private void loadPref() {
+        SharedPreferences mySharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
-	private void loadPref(){
-		SharedPreferences mySharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String myListPreference = mySharedPreferences.getString("list_preference", "None selected");
+    }
 
-    	String myListPreference = mySharedPreferences.getString("list_preference", "None selected");
-	}
-
-    private int getBet()
-    {
+    private int getBet() {
         int res;
         SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -256,4 +233,3 @@ public class SpinActivity extends Activity implements OnClickListener
         return res;
     }
 }
-

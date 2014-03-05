@@ -1,4 +1,4 @@
-package edu.sdu.opab13.onearmedbandit;
+package edu.sdu.obap.onearmedbandit;
 
 import android.app.Activity;
 import android.os.Bundle;

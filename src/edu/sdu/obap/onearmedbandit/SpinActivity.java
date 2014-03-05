@@ -1,4 +1,4 @@
-package edu.sdu.opab13.onearmedbandit;
+package edu.sdu.obap.onearmedbandit;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -17,6 +17,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
+import edu.sdu.opab13.onearmedbandit.R;
 import java.util.ArrayList;
 import java.util.HashMap;
 

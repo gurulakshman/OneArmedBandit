@@ -1,4 +1,4 @@
-package edu.sdu.opab13.onearmedbandit;
+package edu.sdu.obap.onearmedbandit;
 
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
